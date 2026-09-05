@@ -1,0 +1,122 @@
+#!/bin/bash
+#
+# matesar - visor rápido de apuntes de matemáticas en terminal
+#
+# Uso:
+#   matesar                    -> muestra el árbol completo de temas
+#   matesar raices              (o /raices)        -> árbol de ese tema
+#   matesar raices/racionalizacion (o con /)        -> abre ese apunte
+#
+# Instalación: ver INSTALL.md
+
+# --- Configuración: dónde está la carpeta de apuntes ---
+# Por defecto se busca junto a este mismo script. Si mueves la carpeta
+# de apuntes a otro sitio, cambia esta línea por la ruta fija, por ejemplo:
+# MATESAR_DIR="$HOME/matesar-apuntes"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$SCRIPT_DIR/matesar-apuntes" ]; then
+    MATESAR_DIR="$SCRIPT_DIR/matesar-apuntes"
+elif [ -d "$HOME/matesar-apuntes" ]; then
+    MATESAR_DIR="$HOME/matesar-apuntes"
+else
+    echo "❌ No encuentro la carpeta 'matesar-apuntes'."
+    echo "   Colócala junto al script matesar, o en \$HOME/matesar-apuntes,"
+    echo "   o edita la variable MATESAR_DIR dentro de este script."
+    exit 1
+fi
+
+mostrar_archivo() {
+    local file="$1"
+    local titulo
+    titulo="$(basename "$file" .md)"
+
+    if command -v zenity >/dev/null 2>&1; then
+        zenity --text-info \
+            --title="📘 $titulo" \
+            --filename="$file" \
+            --width=750 --height=650 \
+            --font="Monospace 11" 2>/dev/null
+    elif command -v xmessage >/dev/null 2>&1; then
+        xmessage -center -file "$file"
+    elif command -v less >/dev/null 2>&1; then
+        LESSCHARSET=utf-8 less "$file"
+    else
+        cat "$file"
+    fi
+}
+
+mostrar_arbol() {
+    local dir="$1"
+    local titulo="$2"
+    echo "📚 $titulo"
+    echo
+    if command -v tree >/dev/null 2>&1; then
+        tree -C --noreport "$dir" | sed '1d'
+    else
+        # fallback si no está instalado 'tree'
+        find "$dir" -maxdepth 2 | sed "s|$dir||" | sed 's|^/||' | sort
+        echo
+        echo "(Instala 'tree' para una vista más bonita: sudo apt install tree)"
+    fi
+}
+
+mostrar_ayuda() {
+    cat << 'EOF'
+📘 matesar — visor rápido de apuntes de matemáticas
+
+Uso:
+  matesar                        Muestra el árbol completo de temas
+  matesar <tema>                 Árbol de ese tema (ej: matesar raices)
+  matesar <tema>/<archivo>       Abre ese apunte concreto (ventana emergente)
+  matesar -help | --help | -h    Muestra esta ayuda
+
+Ejemplos:
+  matesar
+  matesar derivadas
+  matesar derivadas/tabla_derivadas
+  matesar integrales/integracion_por_partes
+
+Notas:
+  - La barra inicial es opcional: "matesar /raices" = "matesar raices"
+  - Instala 'tree' para árboles más bonitos:      sudo apt install tree
+  - Instala 'zenity' para la ventana emergente:   sudo apt install zenity
+
+Realizado por dezzzx
+EOF
+}
+
+# --- Punto de entrada ---
+arg="$1"
+
+if [ "$arg" = "-help" ] || [ "$arg" = "--help" ] || [ "$arg" = "-h" ] || [ "$arg" = "help" ]; then
+    mostrar_ayuda
+    exit 0
+fi
+
+# quitar una barra inicial si la escriben, ej: /raices -> raices
+arg="${arg#/}"
+# quitar barra final si la hay
+arg="${arg%/}"
+
+if [ -z "$arg" ]; then
+    mostrar_arbol "$MATESAR_DIR" "Índice de apuntes de matemáticas (matesar)"
+    echo
+    echo "-help si necesitas ayuda"
+    echo "realizado por dezzzx"
+    exit 0
+fi
+
+target="$MATESAR_DIR/$arg"
+
+if [ -d "$target" ]; then
+    mostrar_arbol "$target" "Contenido de: $arg"
+elif [ -f "$target.md" ]; then
+    mostrar_archivo "$target.md"
+elif [ -f "$target" ]; then
+    mostrar_archivo "$target"
+else
+    echo "❌ No se encontró '$arg' dentro de los apuntes."
+    echo
+    echo "Prueba 'matesar' sin argumentos para ver todos los temas disponibles."
+    exit 1
+fi
