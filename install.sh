@@ -1,11 +1,11 @@
 #!/bin/bash
 # Instalador de matesar desde GitHub
 # Uso en un ordenador nuevo:
-#   curl -fsSL https://raw.githubusercontent.com/TU_USUARIO/matesar/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/dezzzx/matesar/main/install.sh | bash
 # o clonando primero el repo y ejecutando ./install.sh
 set -e
 
-REPO_URL="https://github.com/TU_USUARIO/matesar.git"   # <-- cambia TU_USUARIO por el tuyo
+REPO_URL="https://github.com/dezzzx/matesar.git"   
 INSTALL_DIR="$HOME/matesar"
 
 echo "== Instalando matesar =="
